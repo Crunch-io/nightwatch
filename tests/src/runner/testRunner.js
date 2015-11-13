@@ -1,4 +1,3 @@
-
 var BASE_PATH = process.env.NIGHTWATCH_COV ? 'lib-cov' : 'lib';
 var path = require('path');
 
@@ -42,6 +41,149 @@ module.exports = {
       test.equals(err, null);
       test.ok('sample' in results.modules);
       test.ok('demoTest' in results.modules.sample.completed);
+      test.done();
+    });
+  },
+
+  testRunNoSkipTestcasesOnFail : function(test) {
+    test.expect(11);
+    var testsPath = path.join(process.cwd(), '/sampletests/withfailures');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      skip_testcases_on_fail: false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.equals(results.passed, 2);
+      test.equals(results.failed, 2);
+      test.equals(results.errors, 0);
+      test.equals(results.skipped, 0);
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunSkipTestcasesOnFail : function(test) {
+    test.expect(9);
+    var testsPath = path.join(process.cwd(), '/sampletests/withfailures');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.equals(results.passed, 1);
+      test.equals(results.failed, 1);
+      test.equals(results.errors, 0);
+      test.equals(results.modules.sample.skipped[0], 'demoTest2');
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunRetries : function(test) {
+    test.expect(11);
+    var testsPath = path.join(process.cwd(), '/sampletests/withfailures');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true,
+      retries: 1
+    }, function(err, results) {
+      test.equals(results.passed, 1);
+      test.equals(results.failed, 1);
+      test.equals(results.errors, 0);
+      test.equals(results.skipped, 0);
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunRetriesNoSkipTestcasesOnFail : function(test) {
+    test.expect(15);
+    var testsPath = path.join(process.cwd(), '/sampletests/withfailures');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      skip_testcases_on_fail: false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true,
+      retries: 1
+    }, function(err, results) {
+      test.equals(results.passed, 2);
+      test.equals(results.failed, 2);
+      test.equals(results.errors, 0);
+      test.equals(results.skipped, 0);
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunSuiteRetries : function(test) {
+    test.expect(13);
+    var testsPath = path.join(process.cwd(), '/sampletests/withfailures');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true,
+      suite_retries: 1
+    }, function(err, results) {
+      test.equals(results.passed, 1);
+      test.equals(results.failed, 1);
+      test.equals(results.errors, 0);
+      test.equals(results.skipped, 0);
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunSuiteRetriesNoSkipTestcasesOnFail : function(test) {
+    test.expect(13);
+    var testsPath = path.join(process.cwd(), '/sampletests/withfailures');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      skip_testcases_on_fail: false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true,
+      suite_retries: 1
+    }, function(err, results) {
+      test.equals(results.errors, 0);
+      test.equals(results.skipped, 0);
+      test.equals(err, null);
       test.done();
     });
   },
@@ -117,6 +259,7 @@ module.exports = {
       start_session : true
     }, function(err, results) {
       test.ok(!('excluded-module' in results.modules));
+      test.ok(!('not-excluded' in results.modules));
       test.done();
     });
   },
@@ -137,6 +280,28 @@ module.exports = {
       start_session : true
     }, function(err, results) {
       test.ok(!('excluded-module' in results.modules));
+      test.done();
+    });
+  },
+
+  testRunWithExcludeFile : function(test) {
+    var testsPath = path.join(process.cwd(), '/sampletests/withexclude');
+    var testPattern = path.join('excluded', 'excluded-module.js');
+
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      },
+      exclude : [testPattern]
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.ok(!('excluded-module' in results.modules));
+      test.ok('not-excluded' in results.modules);
       test.done();
     });
   },
@@ -349,7 +514,8 @@ module.exports = {
         test : test
       }
     }, {
-      output_folder : false
+      output_folder : false,
+      start_session : true
     }, function(err, results) {
       test.equals(err, null);
       test.ok('sample' in results.modules);
@@ -379,6 +545,50 @@ module.exports = {
     });
   },
 
+  testRunWithTagsAndFilterEmpty : function(test) {
+    var testsPath = path.join(process.cwd(), 'sampletests');
+
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      },
+      filter : 'syncnames/*',
+      tag_filter : ['login']
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.ok(err);
+      test.equal(results, false);
+      test.done();
+    });
+  },
+
+  testRunWithTagsAndFilterNotEmpty : function(test) {
+    var testsPath = path.join(process.cwd(), 'sampletests');
+
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      },
+      filter : 'tags/*',
+      tag_filter : ['login']
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.equal(err, null);
+      test.ok(('demoTagTest' in results.modules.sample.completed), 'demoTagTest was ran');
+      test.done();
+    });
+  },
+
   testRunWithOutput : function(test) {
     var src_folders = [
       path.join(process.cwd(), 'sampletests/withsubfolders')
@@ -394,7 +604,8 @@ module.exports = {
         beforeEach : function(client, done) {
           currentTestArray.push({
             name : client.currentTest.name,
-            module : client.currentTest.module
+            module : client.currentTest.module,
+            group : client.currentTest.group
           });
           done();
         }
@@ -407,8 +618,8 @@ module.exports = {
     }, function(err, results) {
       test.equals(err, null);
       test.deepEqual(currentTestArray, [
-        { name: '', module: 'simple/sample' },
-        { name: '', module: 'tags/sample' }
+        { name: '', module: 'simple/sample', group : 'simple' },
+        { name: '', module: 'tags/sample', group : 'tags' }
       ]);
 
       var fs = require('fs');
@@ -486,6 +697,32 @@ module.exports = {
     });
   },
 
+  testRunTestCaseWithBeforeAndAfter : function(test) {
+    var testsPath = path.join(process.cwd(), '/sampletests/before-after/syncBeforeAndAfter.js');
+    test.expect(11);
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true,
+      testcase : 'demoTestSyncOne'
+    }, function(err, results) {
+      test.equals(err, null);
+      var result = results.modules.syncBeforeAndAfter.completed;
+      test.ok('demoTestSyncOne' in result);
+      test.ok(!('beforeEach' in result));
+      test.ok(!('before' in result));
+      test.ok(!('afterEach' in result));
+      test.ok(!('after' in result));
+      test.done();
+    });
+  },
+
   testRunTestcaseInvalid : function(test) {
     var testsPath = path.join(process.cwd(), '/sampletests/before-after/syncBeforeAndAfter.js');
 
@@ -507,7 +744,7 @@ module.exports = {
   },
 
   testRunCurrentTestName : function(test) {
-    test.expect(10);
+    test.expect(11);
     var testsPath = path.join(process.cwd(), '/sampletests/before-after/sampleSingleTest.js');
     this.Runner.run([testsPath], {
       seleniumPort : 10195,
@@ -517,6 +754,7 @@ module.exports = {
         test : test,
         beforeEach: function(client, done) {
           test.equal(client.currentTest.name, '');
+          test.equal(client.currentTest.group, '');
           test.equal(client.currentTest.module, 'sampleSingleTest');
           done();
         },
@@ -531,6 +769,67 @@ module.exports = {
       start_session : true
     }, function(err, results) {
       test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunCurrentTestInAfterEach : function(test) {
+    var testsPath = path.join(process.cwd(), '/sampletests/withaftereach/sampleSingleTest.js');
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunWithAsyncHooks : function(test) {
+    var testsPath = path.join(process.cwd(), '/sampletests/withasynchooks');
+    test.expect(8);
+
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      custom_commands_path : path.join(process.cwd(), '/extra/commands'),
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.equals(err, null);
+      test.done();
+    });
+  },
+
+  testRunWithChaiExpect : function(test) {
+    var testsPath = path.join(process.cwd(), '/sampletests/withchaiexpect');
+    test.expect(6);
+
+    this.Runner.run([testsPath], {
+      seleniumPort : 10195,
+      silent : true,
+      output : false,
+      globals : {
+        test : test
+      }
+    }, {
+      output_folder : false,
+      start_session : true
+    }, function(err, results) {
+      test.equals(err, null);
+      test.equals(results.modules.sampleWithChai.tests, 2);
+      test.equals(results.modules.sampleWithChai.failures, 0);
       test.done();
     });
   }

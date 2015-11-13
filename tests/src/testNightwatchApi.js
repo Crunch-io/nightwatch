@@ -54,7 +54,8 @@ module.exports = {
     test.ok('other' in this.client.api, 'Commands under the subfolder were not loaded properly');
     test.ok('otherCommand' in this.client.api.other);
 
-    var queue = client.enqueueCommand('customCommandConstructor', []);
+    client.api.customCommandConstructor();
+    var queue = client.queue.run();
     var command = queue.currentNode;
     test.equal(command.name, 'customCommandConstructor');
     test.equal(command.context, client.api, 'Command should contain a reference to main client instance.');
@@ -91,9 +92,29 @@ module.exports = {
     Api.loadPageObjects();
 
     test.ok(typeof client.api.page == 'object');
-    test.ok('SimplePage' in client.api.page);
 
-    client.api.page.SimplePage(test);
+    test.ok('SimplePageFn' in client.api.page);
+    test.ok('simplePageObj' in client.api.page);
+
+    client.api.page.SimplePageFn(test);
+
+    var simplePage = client.api.page.simplePageObj();
+    test.equals(typeof simplePage, 'object');
+  },
+
+  testAddPageObjectArrayPath : function(test) {
+    var client = this.client;
+    client.on('selenium:session_create', function(sessionId) {
+      test.done();
+    });
+
+    client.options.page_objects_path = ['./extra/pageobjects', './extra/otherPageobjects'];
+    Api.init(client);
+    Api.loadPageObjects();
+
+    test.ok(typeof client.api.page == 'object');
+    test.ok('simplePageObj' in client.api.page);
+    test.ok('otherPage' in client.api.page);
   },
 
   testAddCustomAssertion : function(test) {
