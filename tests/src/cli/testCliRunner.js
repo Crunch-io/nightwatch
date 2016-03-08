@@ -42,6 +42,36 @@ module.exports = {
       }
     });
 
+    mockery.registerMock('./output_disabled_env.json', {
+      src_folders : ['tests'],
+      output_folder : 'reports',
+      test_settings : {
+        'default' : {
+          output_folder : false
+        }
+      }
+    });
+
+    mockery.registerMock('./output_custom_enabled.json', {
+      src_folders : ['tests'],
+      output_folder : false,
+      test_settings : {
+        'default' : {
+          output_folder : 'custom'
+        }
+      }
+    });
+
+    mockery.registerMock('./output_custom.json', {
+      src_folders : ['tests'],
+      output_folder : 'reports',
+      test_settings : {
+        'default' : {
+          output_folder : 'custom_overwritten'
+        }
+      }
+    });
+
     mockery.registerMock('./empty.json', {
       src_folders : 'tests'
     });
@@ -169,6 +199,15 @@ module.exports = {
         if (b == './output_disabled.json') {
           return './output_disabled.json';
         }
+        if (b == './output_disabled_env.json') {
+          return './output_disabled_env.json';
+        }
+        if (b == './output_custom.json') {
+          return './output_custom.json';
+        }
+        if (b == './output_custom_enabled.json') {
+          return './output_custom_enabled.json';
+        }
         if (b == './empty.json') {
           return './empty.json';
         }
@@ -187,9 +226,15 @@ module.exports = {
         if (b == './selenium_override.json') {
           return './selenium_override.json';
         }
+        if (b == '../path/to/test') {
+          return process.cwd() + '/path/to/test';
+        }
         return './nightwatch.json';
       },
       resolve : function(a) {
+        if(a === '../path/to/test'){
+          return '/path/to/test';
+        }
         return a;
       }
     });
@@ -261,6 +306,75 @@ module.exports = {
     }).init();
 
     test.equals(runner.output_folder, false);
+
+    test.done();
+
+  },
+
+  testSetOutputFolderDisabledPerEnv : function(test) {
+    mockery.registerMock('fs', {
+      existsSync : function(module) {
+        if (module == './settings.json' || module == './nightwatch.conf.js') {
+          return false;
+        }
+
+        return true;
+      }
+    });
+
+    var CliRunner = require('../../../'+ BASE_PATH +'/../lib/runner/cli/clirunner.js');
+    var runner = new CliRunner({
+      config : './output_disabled_env.json',
+      env : 'default'
+    }).init();
+
+    test.equals(runner.output_folder, false);
+
+    test.done();
+
+  },
+
+  testSetOutputFolderCustomOverwrite : function(test) {
+    mockery.registerMock('fs', {
+      existsSync : function(module) {
+        if (module == './settings.json' || module == './nightwatch.conf.js') {
+          return false;
+        }
+
+        return true;
+      }
+    });
+
+    var CliRunner = require('../../../'+ BASE_PATH +'/../lib/runner/cli/clirunner.js');
+    var runner = new CliRunner({
+      config : './output_custom.json',
+      env : 'default'
+    }).init();
+
+    test.equals(runner.output_folder, 'custom_overwritten');
+
+    test.done();
+
+  },
+
+  testSetOutputFolderCustomEnabled : function(test) {
+    mockery.registerMock('fs', {
+      existsSync : function(module) {
+        if (module == './settings.json' || module == './nightwatch.conf.js') {
+          return false;
+        }
+
+        return true;
+      }
+    });
+
+    var CliRunner = require('../../../'+ BASE_PATH +'/../lib/runner/cli/clirunner.js');
+    var runner = new CliRunner({
+      config : './output_custom_enabled.json',
+      env : 'default'
+    }).init();
+
+    test.equals(runner.output_folder, 'custom');
 
     test.done();
 
@@ -359,6 +473,72 @@ module.exports = {
     var testSource = runner.getTestSource();
     test.expect(2);
     test.equal(testSource, 'demoTest.js');
+    test.done();
+  },
+
+  testGetTestSourceSingleWithAbsolutePath : function(test) {
+    var ABSOLUTE_PATH = '/path/to/test';
+    var ABSOLUTE_SRC_PATH = ABSOLUTE_PATH + ".js";
+
+    mockery.registerMock('fs', {
+      existsSync : function(module) {
+        if (module == './custom.json') {
+          return true;
+        }
+        return false;
+      },
+      statSync : function(file) {
+        if (file == ABSOLUTE_SRC_PATH) {
+          test.ok('stat called');
+          return true;
+        }
+        throw new Error('Start error.');
+      }
+    });
+
+    var CliRunner = require('../../../'+ BASE_PATH +'/../lib/runner/cli/clirunner.js');
+    var runner = new CliRunner({
+      config : './custom.json',
+      env : 'default',
+      test : ABSOLUTE_PATH
+    }).init();
+
+    var testSource = runner.getTestSource();
+    test.expect(2);
+    test.equal(testSource, ABSOLUTE_SRC_PATH);
+    test.done();
+  },
+
+  testGetTestSourceSingleWithRelativePath : function(test) {
+    var RELATIVE_PATH = '../path/to/test';
+    var TEST_SRC_PATH = process.cwd() + '/path/to/test.js';
+
+    mockery.registerMock('fs', {
+      existsSync : function(module) {
+        if (module == './custom.json') {
+          return true;
+        }
+        return false;
+      },
+      statSync : function(file) {
+        if (file == TEST_SRC_PATH) {
+          test.ok('stat called');
+          return true;
+        }
+        throw new Error('Start error.');
+      }
+    });
+
+    var CliRunner = require('../../../'+ BASE_PATH +'/../lib/runner/cli/clirunner.js');
+    var runner = new CliRunner({
+      config : './custom.json',
+      env : 'default',
+      test : RELATIVE_PATH
+    }).init();
+
+    var testSource = runner.getTestSource();
+    test.expect(2);
+    test.equal(testSource, TEST_SRC_PATH);
     test.done();
   },
 
@@ -535,6 +715,34 @@ module.exports = {
       runner.readExternalGlobals();
 
     }, 'External global file could not be located - using ./incorrect.json.');
+
+    test.done();
+  },
+
+  testReadExternalGlobalsError : function(test) {
+    mockery.disable();
+
+    var CliRunner = require('../../../'+ BASE_PATH +'/../lib/runner/cli/clirunner.js');
+    var runner = new CliRunner({
+      config : './custom.json',
+      env : 'extra'
+    });
+
+    runner.test_settings = {};
+    runner.settings = {
+      globals_path : './extra/globals-err.js'
+    };
+
+    test.expect(3);
+
+    try {
+      runner.readExternalGlobals();
+    } catch (ex) {
+
+      test.equals(ex.name, 'Error reading external global file failed');
+      test.ok(/using.+?tests\/extra\/globals-err\.js/.test(ex.message));
+      test.ok(ex.stack.indexOf('extra/globals-err.js:1:63') > -1, 'Stack trace should start at the faulty globals-err.js.');
+    }
 
     test.done();
   },
